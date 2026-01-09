@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, ArrowDown, Globe, Zap, Shield } from 'lucide-react';
+import { Sparkles, Globe, Zap, Shield, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Logo from './Logo';
 
@@ -16,67 +16,57 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onExplore }) => {
   ];
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center px-6 py-20">
-      {/* Floating orbs */}
-      <motion.div
-        className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full"
+    <div className="relative min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 py-12 sm:py-20 overflow-hidden">
+      {/* Simplified background orbs */}
+      <div 
+        className="absolute top-1/4 left-1/4 w-48 sm:w-64 h-48 sm:h-64 rounded-full opacity-30"
         style={{
-          background: 'radial-gradient(circle, hsla(270, 95%, 65%, 0.15) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, hsl(var(--primary) / 0.3) 0%, transparent 70%)',
+          filter: 'blur(40px)',
         }}
-        animate={{
-          x: [0, 30, 0],
-          y: [0, -20, 0],
-          scale: [1, 1.1, 1],
-        }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
       />
-      <motion.div
-        className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full"
+      <div 
+        className="absolute bottom-1/4 right-1/4 w-64 sm:w-96 h-64 sm:h-96 rounded-full opacity-20"
         style={{
-          background: 'radial-gradient(circle, hsla(280, 100%, 70%, 0.1) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, hsl(var(--accent) / 0.3) 0%, transparent 70%)',
+          filter: 'blur(60px)',
         }}
-        animate={{
-          x: [0, -40, 0],
-          y: [0, 30, 0],
-          scale: [1, 1.2, 1],
-        }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
       />
 
       {/* Main content */}
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 text-center max-w-4xl mx-auto"
+        transition={{ duration: 0.6 }}
+        className="relative z-10 text-center max-w-4xl mx-auto w-full"
       >
         {/* Logo */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
+          initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="mb-8"
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mb-6 sm:mb-8"
         >
           <Logo size="lg" />
         </motion.div>
 
         {/* Badge */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-8"
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-secondary/50 backdrop-blur-sm border border-border/50 mb-6 sm:mb-8"
         >
-          <Sparkles className="w-4 h-4 text-primary" />
-          <span className="text-sm text-muted-foreground">مدعوم بالذكاء الاصطناعي</span>
+          <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
+          <span className="text-xs sm:text-sm text-muted-foreground">مدعوم بالذكاء الاصطناعي</span>
         </motion.div>
 
         {/* Headline */}
         <motion.h1
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="text-4xl md:text-6xl lg:text-7xl font-display font-bold leading-tight mb-6"
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-bold leading-tight mb-4 sm:mb-6 px-2"
           dir="rtl"
         >
           <span className="text-foreground">استكشف العالم</span>
@@ -86,10 +76,10 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onExplore }) => {
 
         {/* Description */}
         <motion.p
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10"
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 px-4"
           dir="rtl"
         >
           تجربة خرائط ثورية تجمع بين قوة الذكاء الاصطناعي وجمال التصميم.
@@ -98,45 +88,42 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onExplore }) => {
 
         {/* CTA Buttons */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
+          transition={{ duration: 0.5, delay: 0.5 }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-10 sm:mb-16 px-4"
         >
           <Button
             variant="glow"
-            size="xl"
+            size="lg"
             onClick={onExplore}
-            className="group"
+            className="w-full sm:w-auto group text-base"
           >
             <Globe className="w-5 h-5 ml-2 group-hover:rotate-12 transition-transform" />
             ابدأ الاستكشاف
           </Button>
-          <Button variant="glass" size="xl">
+          <Button variant="glass" size="lg" className="w-full sm:w-auto text-base">
             شاهد كيف يعمل
           </Button>
         </motion.div>
 
         {/* Features */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.7 }}
-          className="flex flex-wrap items-center justify-center gap-6"
+          transition={{ duration: 0.5, delay: 0.6 }}
+          className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 px-4"
         >
           {features.map((feature, index) => (
-            <motion.div
+            <div
               key={feature.label}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.8 + index * 0.1 }}
               className="flex items-center gap-2 text-muted-foreground"
             >
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <feature.icon className="w-4 h-4 text-primary" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <feature.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
               </div>
-              <span className="text-sm">{feature.label}</span>
-            </motion.div>
+              <span className="text-xs sm:text-sm">{feature.label}</span>
+            </div>
           ))}
         </motion.div>
       </motion.div>
@@ -145,20 +132,20 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onExplore }) => {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.6, delay: 1 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2"
+        transition={{ duration: 0.5, delay: 0.8 }}
+        className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2"
       >
         <motion.div
-          animate={{ y: [0, 8, 0] }}
+          animate={{ y: [0, 6, 0] }}
           transition={{ duration: 1.5, repeat: Infinity }}
-          className="flex flex-col items-center gap-2 text-muted-foreground"
+          className="flex flex-col items-center gap-1 text-muted-foreground"
         >
-          <span className="text-xs">اسحب للأسفل</span>
-          <ArrowDown className="w-4 h-4" />
+          <span className="text-xs hidden sm:block">اسحب للأسفل</span>
+          <ChevronDown className="w-4 h-4" />
         </motion.div>
       </motion.div>
     </div>
   );
 };
 
-export default HeroSection;
+export default React.memo(HeroSection);

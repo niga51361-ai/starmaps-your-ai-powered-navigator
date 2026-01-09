@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Send, X, Sparkles, Bot, User, Minimize2, Maximize2, Mic, Paperclip } from 'lucide-react';
+import { MessageSquare, Send, X, Sparkles, Bot, User, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Message {
@@ -10,18 +10,13 @@ interface Message {
   timestamp: Date;
 }
 
-interface ChatPanelProps {
-  onAction?: (action: string, params?: any) => void;
-}
-
-const ChatPanel: React.FC<ChatPanelProps> = ({ onAction }) => {
+const ChatPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       role: 'assistant',
-      content: 'مرحباً! أنا المساعد الذكي في StarMaps. كيف يمكنني مساعدتك اليوم؟ يمكنني البحث عن الأماكن، تقديم الاتجاهات، أو الإجابة على استفساراتك بشكل فوري.',
+      content: 'مرحباً! أنا المساعد الذكي في StarMaps. كيف يمكنني مساعدتك؟',
       timestamp: new Date(),
     },
   ]);
@@ -29,15 +24,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onAction }) => {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (isOpen) scrollToBottom();
+  }, [messages, isOpen, scrollToBottom]);
 
-  const handleSend = async () => {
+  const handleSend = useCallback(() => {
     if (!input.trim()) return;
 
     const userMessage: Message = {
@@ -53,10 +48,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onAction }) => {
 
     setTimeout(() => {
       const responses = [
-        'سأبحث عن ذلك لك في الخريطة الآن...',
-        'وجدت عدة نتائج قريبة منك. هل تريد أن أعرضها على الخريطة؟',
-        'يمكنني مساعدتك في الوصول إلى هذا المكان. هل تريد الاتجاهات المفصلة؟',
-        'هذا مكان رائع! يقع على بعد 5 دقائق منك. تقييمه 4.8 نجوم.',
+        'سأبحث عن ذلك لك الآن...',
+        'وجدت عدة نتائج قريبة منك.',
+        'يمكنني مساعدتك في الوصول إلى هذا المكان.',
       ];
 
       const assistantMessage: Message = {
@@ -68,15 +62,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onAction }) => {
 
       setMessages((prev) => [...prev, assistantMessage]);
       setIsTyping(false);
-    }, 1500);
-  };
+    }, 1000);
+  }, [input]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
-  };
+  }, [handleSend]);
 
   return (
     <>
@@ -87,41 +81,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onAction }) => {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-24 right-6 z-50"
+            className="fixed bottom-20 sm:bottom-24 right-3 sm:right-6 z-40"
           >
-            <motion.div
-              className="relative"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <Button
+              onClick={() => setIsOpen(true)}
+              className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-xl"
             >
-              {/* Glow effect */}
-              <motion.div
-                className="absolute inset-0 rounded-2xl"
-                style={{
-                  background: 'linear-gradient(135deg, hsl(270 95% 65%), hsl(280 100% 70%))',
-                  filter: 'blur(15px)',
-                }}
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                  opacity: [0.4, 0.7, 0.4]
-                }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
-              
-              <Button
-                onClick={() => setIsOpen(true)}
-                className="relative w-14 h-14 rounded-2xl bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-2xl"
-              >
-                <MessageSquare className="w-6 h-6" />
-              </Button>
-              
-              {/* Notification dot */}
-              <motion.span 
-                className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-background"
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              />
-            </motion.div>
+              <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -134,165 +102,129 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onAction }) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className={`
-              fixed z-50 overflow-hidden
-              ${isExpanded 
-                ? 'inset-4 md:inset-8' 
-                : 'bottom-24 right-6 w-[400px] h-[550px] max-w-[calc(100vw-48px)] max-h-[calc(100vh-150px)]'
-              }
-              rounded-3xl flex flex-col
-            `}
+            className="fixed z-50 inset-3 sm:inset-auto sm:bottom-24 sm:right-6 sm:w-96 sm:h-[500px] sm:max-h-[70vh] rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden"
             style={{
-              background: 'linear-gradient(180deg, hsl(250 20% 8% / 0.95), hsl(250 20% 5% / 0.98))',
-              backdropFilter: 'blur(40px)',
-              border: '1px solid hsl(270 50% 30% / 0.3)',
-              boxShadow: '0 25px 80px -15px hsl(270 95% 65% / 0.25), inset 0 1px 0 hsl(0 0% 100% / 0.05)',
+              background: 'hsl(var(--background) / 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid hsl(var(--border) / 0.5)',
+              boxShadow: '0 20px 60px hsl(var(--primary) / 0.2)',
             }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border/30">
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-border/30">
               <div className="flex items-center gap-3">
-                <motion.div 
-                  className="w-11 h-11 rounded-xl flex items-center justify-center"
-                  style={{
-                    background: 'linear-gradient(135deg, hsl(270 95% 65%), hsl(280 100% 70%))',
-                  }}
-                  animate={{ rotate: [0, 5, -5, 0] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-primary to-accent flex items-center justify-center">
                   <Sparkles className="w-5 h-5 text-white" />
-                </motion.div>
+                </div>
                 <div>
-                  <h3 className="font-display font-semibold text-foreground">المساعد الذكي</h3>
+                  <h3 className="font-semibold text-foreground text-sm sm:text-base">المساعد الذكي</h3>
                   <div className="flex items-center gap-1.5">
-                    <motion.div
-                      className="w-2 h-2 rounded-full bg-green-500"
-                      animate={{ opacity: [1, 0.5, 1] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    />
-                    <p className="text-xs text-muted-foreground">متصل ومستعد للمساعدة</p>
+                    <span className="w-2 h-2 rounded-full bg-green-500" />
+                    <p className="text-xs text-muted-foreground">متصل</p>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className="rounded-xl hover:bg-secondary/50"
-                >
-                  {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-xl hover:bg-secondary/50"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsOpen(false)}
+                className="rounded-xl"
+              >
+                <X className="w-5 h-5" />
+              </Button>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
               {messages.map((message) => (
-                <motion.div
+                <div
                   key={message.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
+                  className={`flex gap-2 sm:gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
                 >
-                  <motion.div 
+                  <div 
                     className={`
-                      w-9 h-9 rounded-xl flex items-center justify-center shrink-0
+                      w-8 h-8 rounded-lg flex items-center justify-center shrink-0
                       ${message.role === 'assistant' 
                         ? 'bg-gradient-to-br from-primary to-accent' 
-                        : 'bg-secondary/80'
+                        : 'bg-secondary'
                       }
                     `}
-                    whileHover={{ scale: 1.05 }}
                   >
                     {message.role === 'assistant' ? (
                       <Bot className="w-4 h-4 text-white" />
                     ) : (
                       <User className="w-4 h-4 text-foreground" />
                     )}
-                  </motion.div>
-                  <motion.div 
+                  </div>
+                  <div 
                     className={`
-                      max-w-[80%] rounded-2xl p-3.5
+                      max-w-[80%] rounded-2xl p-3
                       ${message.role === 'assistant' 
-                        ? 'bg-secondary/60 text-foreground rounded-tl-md' 
-                        : 'bg-gradient-to-r from-primary to-accent text-white rounded-tr-md'
+                        ? 'bg-secondary/60 text-foreground rounded-tl-sm' 
+                        : 'bg-gradient-to-r from-primary to-accent text-white rounded-tr-sm'
                       }
                     `}
                     dir="rtl"
-                    whileHover={{ scale: 1.01 }}
                   >
-                    <p className="text-sm leading-relaxed">{message.content}</p>
-                    <p className="text-xs opacity-50 mt-2">
+                    <p className="text-sm">{message.content}</p>
+                    <p className="text-xs opacity-50 mt-1">
                       {message.timestamp.toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}
                     </p>
-                  </motion.div>
-                </motion.div>
+                  </div>
+                </div>
               ))}
               
               {isTyping && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex gap-3"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <div className="flex gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                     <Bot className="w-4 h-4 text-white" />
                   </div>
-                  <div className="bg-secondary/60 rounded-2xl rounded-tl-md p-4">
-                    <div className="flex gap-1.5">
+                  <div className="bg-secondary/60 rounded-2xl rounded-tl-sm p-3">
+                    <div className="flex gap-1">
                       {[0, 1, 2].map((i) => (
                         <motion.span
                           key={i}
                           className="w-2 h-2 bg-primary rounded-full"
-                          animate={{ y: [0, -6, 0] }}
-                          transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+                          animate={{ y: [0, -4, 0] }}
+                          transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }}
                         />
                       ))}
                     </div>
                   </div>
-                </motion.div>
+                </div>
               )}
               
               <div ref={messagesEndRef} />
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t border-border/30">
+            <div className="p-3 sm:p-4 border-t border-border/30">
               <div 
-                className="flex items-center gap-2 rounded-2xl p-2"
+                className="flex items-center gap-2 rounded-xl p-1.5"
                 style={{
-                  background: 'hsl(250 15% 10% / 0.8)',
-                  border: '1px solid hsl(270 30% 25% / 0.3)',
+                  background: 'hsl(var(--secondary) / 0.5)',
                 }}
               >
-                <Button variant="ghost" size="icon" className="shrink-0 rounded-xl text-muted-foreground hover:text-foreground">
-                  <Paperclip className="w-4 h-4" />
-                </Button>
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="اكتب رسالتك هنا..."
-                  className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm py-2"
+                  placeholder="اكتب رسالتك..."
+                  className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm py-2 px-3"
                   dir="rtl"
                 />
-                <Button variant="ghost" size="icon" className="shrink-0 rounded-xl text-muted-foreground hover:text-foreground">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="shrink-0 rounded-lg text-muted-foreground w-9 h-9"
+                >
                   <Mic className="w-4 h-4" />
                 </Button>
                 <Button
                   onClick={handleSend}
                   size="icon"
-                  className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-r from-primary to-accent text-white"
+                  className="shrink-0 w-9 h-9 rounded-lg bg-gradient-to-r from-primary to-accent text-white"
                   disabled={!input.trim()}
                 >
                   <Send className="w-4 h-4" />
@@ -306,4 +238,4 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onAction }) => {
   );
 };
 
-export default ChatPanel;
+export default React.memo(ChatPanel);

@@ -1,204 +1,99 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MapPin, Navigation, X, Sparkles, Mic, Command } from 'lucide-react';
+import { Search, Navigation, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface SearchBarProps {
-  onSearch: (query: string) => void;
-  onCurrentLocation: () => void;
+  onSearch?: (query: string) => void;
+  onCurrentLocation?: () => void;
 }
+
+const suggestions = ['مطاعم قريبة', 'محطات وقود', 'مستشفيات', 'فنادق'];
 
 const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onCurrentLocation }) => {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      onSearch(query);
+      onSearch?.(query);
+      setQuery('');
+      setIsFocused(false);
     }
-  };
+  }, [query, onSearch]);
 
-  const suggestions = [
-    { icon: MapPin, text: 'المطاعم القريبة', category: 'مطاعم', gradient: 'from-orange-500 to-red-500' },
-    { icon: Navigation, text: 'محطات الوقود', category: 'خدمات', gradient: 'from-green-500 to-emerald-500' },
-    { icon: Sparkles, text: 'الأماكن السياحية', category: 'سياحة', gradient: 'from-blue-500 to-indigo-500' },
-  ];
+  const handleSuggestionClick = useCallback((suggestion: string) => {
+    onSearch?.(suggestion);
+    setIsFocused(false);
+  }, [onSearch]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      className="relative w-full max-w-2xl mx-auto"
-    >
+    <div className="relative w-full max-w-2xl mx-auto">
       <form onSubmit={handleSubmit}>
-        <motion.div 
-          className="relative"
-          animate={{
-            boxShadow: isFocused 
-              ? '0 20px 60px -15px hsl(270 95% 65% / 0.3)' 
-              : '0 10px 40px -15px hsl(0 0% 0% / 0.3)',
+        <div 
+          className={`relative flex items-center rounded-2xl transition-all duration-200 ${isFocused ? 'ring-2 ring-primary/50' : ''}`}
+          style={{
+            background: 'hsl(var(--background) / 0.85)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid hsl(var(--border) / 0.5)',
+            boxShadow: isFocused ? '0 8px 32px hsl(var(--primary) / 0.15)' : '0 4px 16px hsl(0 0% 0% / 0.2)',
           }}
-          transition={{ duration: 0.3 }}
         >
-          {/* Glow effect on focus */}
+          <Button type="button" variant="ghost" size="icon" className="shrink-0 ml-1 sm:ml-2 rounded-xl text-muted-foreground w-9 h-9 sm:w-10 sm:h-10" onClick={onCurrentLocation}>
+            <Navigation className="w-4 h-4 sm:w-5 sm:h-5" />
+          </Button>
+          
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+            placeholder="ابحث عن مكان أو عنوان..."
+            className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none py-3 sm:py-4 px-2 text-sm sm:text-base"
+            dir="rtl"
+          />
+
           <AnimatePresence>
-            {isFocused && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute -inset-[1px] rounded-2xl"
-                style={{
-                  background: 'linear-gradient(135deg, hsl(270 95% 65% / 0.5), hsl(280 100% 70% / 0.3))',
-                  filter: 'blur(8px)',
-                }}
-              />
+            {query && (
+              <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
+                <Button type="button" variant="ghost" size="icon" className="shrink-0 rounded-xl text-muted-foreground w-8 h-8" onClick={() => setQuery('')}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </motion.div>
             )}
           </AnimatePresence>
-
-          <div 
-            className={`
-              relative flex items-center gap-3 rounded-2xl p-2 transition-all duration-300
-            `}
-            style={{
-              background: 'linear-gradient(135deg, hsl(250 15% 10% / 0.9), hsl(250 15% 8% / 0.95))',
-              backdropFilter: 'blur(20px)',
-              border: isFocused 
-                ? '1px solid hsl(270 50% 50% / 0.5)' 
-                : '1px solid hsl(250 10% 20% / 0.5)',
-            }}
-          >
-            <motion.div 
-              className="flex items-center justify-center w-12 h-12 rounded-xl"
-              style={{
-                background: 'linear-gradient(135deg, hsl(270 95% 65%), hsl(280 100% 70%))',
-              }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Search className="w-5 h-5 text-white" />
-            </motion.div>
-            
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-              placeholder="ابحث عن مكان، عنوان، أو اسأل المساعد..."
-              className="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground text-base"
-              dir="rtl"
-            />
-
-            <AnimatePresence>
-              {query && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                >
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setQuery('')}
-                    className="shrink-0 rounded-xl"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="shrink-0 rounded-xl text-muted-foreground hover:text-foreground"
-            >
-              <Mic className="w-4 h-4" />
-            </Button>
-
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                type="button"
-                variant="glass"
-                size="icon"
-                onClick={onCurrentLocation}
-                className="shrink-0 rounded-xl"
-              >
-                <Navigation className="w-4 h-4" />
-              </Button>
-            </motion.div>
-          </div>
-        </motion.div>
+          
+          <Button type="submit" size="icon" className="shrink-0 mr-1.5 sm:mr-2 w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground">
+            <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+          </Button>
+        </div>
       </form>
 
-      {/* Keyboard shortcut hint */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className="flex justify-center mt-3"
-      >
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>اضغط</span>
-          <kbd className="px-2 py-1 rounded-md bg-secondary/50 border border-border/50 font-mono text-[10px]">
-            <Command className="w-3 h-3 inline mr-1" />K
-          </kbd>
-          <span>للبحث السريع</span>
-        </div>
-      </motion.div>
-
-      {/* Suggestions dropdown */}
       <AnimatePresence>
         {isFocused && !query && (
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            transition={{ duration: 0.2 }}
-            className="absolute top-full left-0 right-0 mt-3 z-50 rounded-2xl p-4"
-            style={{
-              background: 'linear-gradient(180deg, hsl(250 15% 10% / 0.95), hsl(250 15% 8% / 0.98))',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid hsl(250 10% 20% / 0.5)',
-              boxShadow: '0 20px 60px -15px hsl(0 0% 0% / 0.5)',
-            }}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-full left-0 right-0 mt-2 rounded-xl overflow-hidden z-50"
+            style={{ background: 'hsl(var(--background) / 0.95)', backdropFilter: 'blur(20px)', border: '1px solid hsl(var(--border) / 0.5)' }}
           >
-            <p className="text-sm text-muted-foreground mb-3 px-1" dir="rtl">اقتراحات سريعة</p>
-            <div className="space-y-2">
-              {suggestions.map((suggestion, index) => (
-                <motion.button
-                  key={index}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  onClick={() => {
-                    setQuery(suggestion.text);
-                    onSearch(suggestion.text);
-                  }}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-secondary/50 transition-all text-right group"
-                  dir="rtl"
-                  whileHover={{ x: -4 }}
-                >
-                  <div className={`flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br ${suggestion.gradient}`}>
-                    <suggestion.icon className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-foreground font-medium text-sm">{suggestion.text}</p>
-                    <p className="text-xs text-muted-foreground">{suggestion.category}</p>
-                  </div>
-                </motion.button>
+            <div className="p-2" dir="rtl">
+              <p className="text-xs text-muted-foreground px-3 py-2">اقتراحات سريعة</p>
+              {suggestions.map((suggestion) => (
+                <button key={suggestion} type="button" onClick={() => handleSuggestionClick(suggestion)} className="w-full text-right px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-secondary/50 transition-colors flex items-center gap-2">
+                  <Search className="w-4 h-4 text-muted-foreground" />
+                  {suggestion}
+                </button>
               ))}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
 
-export default SearchBar;
+export default React.memo(SearchBar);
