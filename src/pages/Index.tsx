@@ -1,37 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ParticleField from '@/components/ParticleField';
-import GlowingCursor from '@/components/GlowingCursor';
 import HeroSection from '@/components/HeroSection';
-import MapInterface from '@/components/MapInterface';
 
-// Demo Mapbox token - users should replace with their own
+// Lazy load heavy components
+const ParticleField = lazy(() => import('@/components/ParticleField'));
+const GlowingCursor = lazy(() => import('@/components/GlowingCursor'));
+const MapInterface = lazy(() => import('@/components/MapInterface'));
+
+// Mapbox demo token
 const DEMO_MAP_TOKEN = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
 
 const Index = () => {
   const [showMap, setShowMap] = useState(false);
 
-  const handleExplore = () => {
+  const handleExplore = useCallback(() => {
     setShowMap(true);
-  };
+  }, []);
 
-  const handleBackToHome = () => {
+  const handleBackToHome = useCallback(() => {
     setShowMap(false);
-  };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
-      {/* Custom cursor */}
-      <GlowingCursor />
+      {/* Lazy loaded effects - only on desktop */}
+      <Suspense fallback={null}>
+        <GlowingCursor />
+      </Suspense>
       
-      {/* Particle background */}
-      <ParticleField />
+      {/* Particles - lazy loaded */}
+      {!showMap && (
+        <Suspense fallback={null}>
+          <ParticleField />
+        </Suspense>
+      )}
       
-      {/* Background effects */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[150px]" />
-        <div className="absolute bottom-0 right-1/4 w-[800px] h-[800px] bg-accent/10 rounded-full blur-[180px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px]" />
+      {/* Background gradients - simplified */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div 
+          className="absolute top-0 left-1/4 w-[300px] sm:w-[400px] h-[300px] sm:h-[400px] rounded-full opacity-20"
+          style={{
+            background: 'radial-gradient(circle, hsl(var(--primary) / 0.5) 0%, transparent 70%)',
+            filter: 'blur(80px)',
+          }}
+        />
+        <div 
+          className="absolute bottom-0 right-1/4 w-[400px] sm:w-[500px] h-[400px] sm:h-[500px] rounded-full opacity-15"
+          style={{
+            background: 'radial-gradient(circle, hsl(var(--accent) / 0.5) 0%, transparent 70%)',
+            filter: 'blur(100px)',
+          }}
+        />
       </div>
 
       <AnimatePresence mode="wait">
@@ -40,23 +59,29 @@ const Index = () => {
             key="hero"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.5 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
           >
             <HeroSection onExplore={handleExplore} />
           </motion.div>
         ) : (
           <motion.div
             key="map"
-            initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.3 }}
           >
-            <MapInterface 
-              mapToken={DEMO_MAP_TOKEN} 
-              onBack={handleBackToHome}
-            />
+            <Suspense fallback={
+              <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="text-muted-foreground">جاري التحميل...</div>
+              </div>
+            }>
+              <MapInterface 
+                mapToken={DEMO_MAP_TOKEN} 
+                onBack={handleBackToHome}
+              />
+            </Suspense>
           </motion.div>
         )}
       </AnimatePresence>

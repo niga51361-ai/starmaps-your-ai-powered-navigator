@@ -1,81 +1,48 @@
-import React, { useEffect, useState } from 'react';
-import { motion, useSpring } from 'framer-motion';
+import React, { useEffect, useState, useCallback } from 'react';
 
+// Simple cursor glow - only on desktop, minimal rerenders
 const GlowingCursor: React.FC = () => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [isPointer, setIsPointer] = useState(false);
+  const [position, setPosition] = useState({ x: -100, y: -100 });
+  const [isVisible, setIsVisible] = useState(false);
 
-  const springConfig = { damping: 25, stiffness: 200 };
-  const x = useSpring(0, springConfig);
-  const y = useSpring(0, springConfig);
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    setPosition({ x: e.clientX, y: e.clientY });
+    if (!isVisible) setIsVisible(true);
+  }, [isVisible]);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-      x.set(e.clientX);
-      y.set(e.clientY);
+    // Skip on mobile/touch devices
+    if ('ontouchstart' in window || window.innerWidth < 768) {
+      return;
+    }
 
-      const target = e.target as HTMLElement;
-      setIsPointer(
-        window.getComputedStyle(target).cursor === 'pointer' ||
-        target.tagName === 'BUTTON' ||
-        target.tagName === 'A' ||
-        target.closest('button') !== null ||
-        target.closest('a') !== null
-      );
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
     return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [x, y]);
+  }, [handleMouseMove]);
+
+  // Don't render on mobile
+  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+    return null;
+  }
 
   return (
-    <>
-      {/* Main cursor glow */}
-      <motion.div
-        className="fixed pointer-events-none z-[100] mix-blend-screen hidden md:block"
+    <div
+      className="fixed pointer-events-none z-[100] hidden md:block transition-opacity duration-300"
+      style={{
+        left: position.x,
+        top: position.y,
+        transform: 'translate(-50%, -50%)',
+        opacity: isVisible ? 1 : 0,
+      }}
+    >
+      <div
+        className="w-32 h-32 rounded-full"
         style={{
-          x,
-          y,
-          translateX: '-50%',
-          translateY: '-50%',
+          background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%)',
         }}
-      >
-        <motion.div
-          className="rounded-full"
-          style={{
-            background: 'radial-gradient(circle, hsla(270, 95%, 65%, 0.3) 0%, transparent 70%)',
-          }}
-          animate={{
-            width: isPointer ? 80 : 120,
-            height: isPointer ? 80 : 120,
-          }}
-          transition={{ duration: 0.2 }}
-        />
-      </motion.div>
-
-      {/* Small dot */}
-      <motion.div
-        className="fixed pointer-events-none z-[101] hidden md:block"
-        style={{
-          left: mousePosition.x,
-          top: mousePosition.y,
-          translateX: '-50%',
-          translateY: '-50%',
-        }}
-      >
-        <motion.div
-          className="rounded-full bg-primary"
-          animate={{
-            width: isPointer ? 12 : 6,
-            height: isPointer ? 12 : 6,
-            opacity: isPointer ? 1 : 0.8,
-          }}
-          transition={{ duration: 0.15 }}
-        />
-      </motion.div>
-    </>
+      />
+    </div>
   );
 };
 
-export default GlowingCursor;
+export default React.memo(GlowingCursor);
