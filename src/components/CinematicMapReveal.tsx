@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Plane, Hotel, Landmark, Navigation, Volume2, VolumeX, ArrowLeft } from 'lucide-react';
+import { Plane, Hotel, Landmark, Navigation, Volume2, VolumeX, ArrowLeft, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Logo from './Logo';
 
@@ -20,8 +20,8 @@ interface CinematicMapRevealProps {
   onBack: () => void;
 }
 
-// Use a fallback token or get from environment
-const MAPBOX_TOKEN = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
+// Demo Mapbox token - works for demo purposes
+const MAPBOX_TOKEN = 'pk.eyJ1IjoibG92YWJsZWRldiIsImEiOiJjbTRpZzd6aTcwMmppMmpxMXRvMjV3MnNsIn0.Rrg1aBGTbWPxrbelFSGKWA';
 
 const CinematicMapReveal: React.FC<CinematicMapRevealProps> = ({ destination, onBack }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -30,6 +30,8 @@ const CinematicMapReveal: React.FC<CinematicMapRevealProps> = ({ destination, on
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [showInfo, setShowInfo] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
   // Text-to-speech function
   const speak = useCallback((text: string) => {
@@ -57,119 +59,158 @@ const CinematicMapReveal: React.FC<CinematicMapRevealProps> = ({ destination, on
     }
   }, [isSpeaking]);
 
-  // Initialize map and start cinematic sequence
+  // Initialize map
   useEffect(() => {
-    if (!mapContainer.current) return;
+    if (!mapContainer.current || map.current) return;
 
-    // Start intro phase
-    setPhase('intro');
-    
     // Speak intro
-    setTimeout(() => {
-      speak(`جاري الانطلاق إلى ${destination.name}، ${destination.country}. استعد لرحلة مذهلة!`);
-    }, 500);
+    speak(`جاري الانطلاق إلى ${destination.name}، ${destination.country}. استعد لرحلة مذهلة!`);
 
-    // Initialize map after intro
-    setTimeout(() => {
-      mapboxgl.accessToken = MAPBOX_TOKEN;
+    const initializeMap = () => {
+      try {
+        mapboxgl.accessToken = MAPBOX_TOKEN;
 
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current!,
-        style: 'mapbox://styles/mapbox/dark-v11',
-        projection: 'globe',
-        zoom: 1,
-        center: [0, 20],
-        pitch: 0,
-        bearing: 0,
-        attributionControl: false,
-        antialias: true,
-      });
-
-      map.current.on('load', () => {
-        // Add atmosphere
-        map.current?.setFog({
-          color: 'rgb(15, 10, 30)',
-          'high-color': 'rgb(60, 30, 100)',
-          'horizon-blend': 0.15,
-          'space-color': 'rgb(8, 5, 18)',
-          'star-intensity': 0.8
+        const newMap = new mapboxgl.Map({
+          container: mapContainer.current!,
+          style: 'mapbox://styles/mapbox/dark-v11',
+          projection: 'globe',
+          zoom: 1.5,
+          center: [30, 20],
+          pitch: 0,
+          bearing: 0,
+          attributionControl: false,
+          antialias: true,
         });
 
-        // Start flying animation
-        setPhase('flying');
-        
-        // Cinematic fly to destination
-        map.current?.flyTo({
-          center: [destination.coordinates.lng, destination.coordinates.lat],
-          zoom: 12,
-          pitch: 60,
-          bearing: 30,
-          duration: 6000,
-          essential: true,
-          curve: 1.5,
-        });
+        map.current = newMap;
 
-        // Speak during flight
-        setTimeout(() => {
-          speak(`نحن نقترب من ${destination.name}. المسافة من موقعك ${destination.distance}`);
-        }, 2000);
-
-        // Arrival
-        setTimeout(() => {
-          setPhase('arrived');
+        newMap.on('load', () => {
+          console.log('Map loaded successfully');
+          setMapLoaded(true);
           
-          // Add destination marker
-          if (map.current) {
-            const el = document.createElement('div');
-            el.className = 'destination-marker';
-            el.innerHTML = `
-              <div class="marker-pulse"></div>
-              <div class="marker-inner">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="currentColor"/>
-                </svg>
-              </div>
-            `;
-            
-            new mapboxgl.Marker(el)
-              .setLngLat([destination.coordinates.lng, destination.coordinates.lat])
-              .addTo(map.current);
+          // Add atmosphere
+          try {
+            newMap.setFog({
+              color: 'rgb(15, 10, 30)',
+              'high-color': 'rgb(60, 30, 100)',
+              'horizon-blend': 0.15,
+              'space-color': 'rgb(8, 5, 18)',
+              'star-intensity': 0.8
+            });
+          } catch (e) {
+            console.log('Fog not supported');
           }
-          
-          speak(`وصلنا إلى ${destination.name}! دعني أخبرك عن أفضل الفنادق والمعالم هنا.`);
-          
-          setTimeout(() => {
-            setPhase('exploring');
-            setShowInfo(true);
-            
-            // Speak about hotels and attractions
-            setTimeout(() => {
-              const hotelsList = destination.hotels?.slice(0, 2).join(' و ') || '';
-              const attractionsList = destination.attractions?.slice(0, 2).join(' و ') || '';
-              speak(`أفضل الفنادق في ${destination.name}: ${hotelsList}. ومن أبرز المعالم: ${attractionsList}. استمتع برحلتك!`);
-            }, 1000);
-          }, 2000);
-        }, 6500);
-      });
 
-      map.current.on('error', (e) => {
-        console.error('Map error:', e);
-      });
-    }, 2000);
+          // Start flying animation after a short delay
+          setTimeout(() => {
+            setPhase('flying');
+            
+            newMap.flyTo({
+              center: [destination.coordinates.lng, destination.coordinates.lat],
+              zoom: 13,
+              pitch: 60,
+              bearing: -30,
+              duration: 5000,
+              essential: true,
+              curve: 1.8,
+            });
+
+            // Speak during flight
+            setTimeout(() => {
+              speak(`نحن نقترب من ${destination.name}. المسافة من موقعك ${destination.distance}`);
+            }, 1500);
+
+            // Arrival phase
+            setTimeout(() => {
+              setPhase('arrived');
+              
+              // Add custom marker
+              const markerEl = document.createElement('div');
+              markerEl.className = 'custom-destination-marker';
+              markerEl.innerHTML = `
+                <div class="marker-ring"></div>
+                <div class="marker-dot"></div>
+              `;
+              
+              new mapboxgl.Marker(markerEl)
+                .setLngLat([destination.coordinates.lng, destination.coordinates.lat])
+                .addTo(newMap);
+
+              speak(`وصلنا إلى ${destination.name}! دعني أخبرك عن أفضل الفنادق والمعالم هنا.`);
+              
+              // Show info panel
+              setTimeout(() => {
+                setPhase('exploring');
+                setShowInfo(true);
+                
+                setTimeout(() => {
+                  const hotelsList = destination.hotels?.slice(0, 2).join(' و ') || '';
+                  const attractionsList = destination.attractions?.slice(0, 2).join(' و ') || '';
+                  speak(`أفضل الفنادق: ${hotelsList}. ومن أبرز المعالم: ${attractionsList}. استمتع برحلتك!`);
+                }, 800);
+              }, 1500);
+            }, 5500);
+          }, 1500);
+        });
+
+        newMap.on('error', (e) => {
+          console.error('Map error:', e);
+          setMapError('حدث خطأ في تحميل الخريطة');
+        });
+
+      } catch (error) {
+        console.error('Map initialization error:', error);
+        setMapError('فشل في تهيئة الخريطة');
+      }
+    };
+
+    // Small delay to ensure container is ready
+    const timer = setTimeout(initializeMap, 500);
 
     return () => {
+      clearTimeout(timer);
       window.speechSynthesis?.cancel();
-      map.current?.remove();
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
     };
   }, [destination, speak]);
+
+  const handleRetry = () => {
+    setMapError(null);
+    setMapLoaded(false);
+    if (map.current) {
+      map.current.remove();
+      map.current = null;
+    }
+    window.location.reload();
+  };
 
   return (
     <div className="relative min-h-screen bg-background overflow-hidden">
       {/* Map container */}
-      <div ref={mapContainer} className="absolute inset-0" />
+      <div 
+        ref={mapContainer} 
+        className="absolute inset-0 w-full h-full"
+        style={{ minHeight: '100vh' }}
+      />
+
+      {/* Error state */}
+      {mapError && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/90">
+          <div className="text-center p-6" dir="rtl">
+            <p className="text-foreground mb-4">{mapError}</p>
+            <Button onClick={handleRetry} variant="glow">
+              <RotateCcw className="w-4 h-4 ml-2" />
+              إعادة المحاولة
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Gradient overlays */}
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute inset-0 pointer-events-none z-10">
         <div 
           className="absolute inset-x-0 top-0 h-32"
           style={{ background: 'linear-gradient(to bottom, hsl(var(--background)) 0%, transparent 100%)' }}
@@ -338,48 +379,40 @@ const CinematicMapReveal: React.FC<CinematicMapRevealProps> = ({ destination, on
 
       {/* Custom marker styles */}
       <style>{`
-        .destination-marker {
+        .custom-destination-marker {
           position: relative;
-          width: 40px;
-          height: 40px;
+          width: 60px;
+          height: 60px;
         }
         
-        .marker-pulse {
+        .marker-ring {
           position: absolute;
-          width: 100%;
-          height: 100%;
-          background: hsl(var(--primary) / 0.3);
+          inset: 0;
+          border: 3px solid hsl(var(--primary));
           border-radius: 50%;
-          animation: pulse 2s infinite;
+          animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
         }
         
-        .marker-inner {
+        .marker-dot {
           position: absolute;
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          width: 30px;
-          height: 30px;
+          width: 20px;
+          height: 20px;
           background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
-          border-radius: 50% 50% 50% 0;
-          transform: translate(-50%, -50%) rotate(-45deg);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 20px hsl(var(--primary) / 0.5);
+          border-radius: 50%;
+          box-shadow: 0 0 20px hsl(var(--primary) / 0.6);
         }
         
-        .marker-inner svg {
-          transform: rotate(45deg);
-          color: white;
-          width: 16px;
-          height: 16px;
+        @keyframes ping {
+          0% { transform: scale(1); opacity: 1; }
+          75%, 100% { transform: scale(2); opacity: 0; }
         }
         
-        @keyframes pulse {
-          0% { transform: scale(1); opacity: 0.5; }
-          50% { transform: scale(1.5); opacity: 0; }
-          100% { transform: scale(1); opacity: 0.5; }
+        .mapboxgl-ctrl-logo,
+        .mapboxgl-ctrl-attrib {
+          display: none !important;
         }
       `}</style>
     </div>
