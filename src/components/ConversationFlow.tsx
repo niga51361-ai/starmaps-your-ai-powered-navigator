@@ -1,15 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, MapPin, Plane, Loader2, Volume2, VolumeX } from 'lucide-react';
+import { Send, Bot, User, MapPin, Plane, Loader2, Volume2, VolumeX, Sparkles, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Logo from './Logo';
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  isDestination?: boolean;
-}
+import { useAIChat, type AIMessage } from '@/hooks/useAIChat';
 
 interface DestinationInfo {
   name: string;
@@ -22,9 +16,10 @@ interface DestinationInfo {
 
 interface ConversationFlowProps {
   onDestinationConfirmed: (destination: DestinationInfo) => void;
+  onBack?: () => void;
 }
 
-// Simulated destinations database
+// Enhanced destinations database
 const destinations: Record<string, DestinationInfo> = {
   'باريس': { name: 'باريس', country: 'فرنسا', coordinates: { lat: 48.8566, lng: 2.3522 }, distance: '5,200 كم', hotels: ['فندق ريتز', 'فور سيزونز', 'شانغريلا'], attractions: ['برج إيفل', 'متحف اللوفر', 'الشانزليزيه'] },
   'دبي': { name: 'دبي', country: 'الإمارات', coordinates: { lat: 25.2048, lng: 55.2708 }, distance: '1,800 كم', hotels: ['برج العرب', 'أتلانتس', 'أرماني'], attractions: ['برج خليفة', 'دبي مول', 'نخلة جميرا'] },
@@ -36,21 +31,23 @@ const destinations: Record<string, DestinationInfo> = {
   'اسطنبول': { name: 'اسطنبول', country: 'تركيا', coordinates: { lat: 41.0082, lng: 28.9784 }, distance: '2,000 كم', hotels: ['فور سيزونز', 'رافلز', 'سيراجان'], attractions: ['آيا صوفيا', 'المسجد الأزرق', 'البازار الكبير'] },
 };
 
-const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfirmed }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: '✨ مرحباً بك في StarMaps! أنا مساعدك الذكي للسفر. إلى أين تريد أن تذهب اليوم؟',
-    },
-  ]);
+const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfirmed, onBack }) => {
+  const { messages: aiMessages, isLoading: aiLoading, error: aiError, sendMessage: sendAIMessage } = useAIChat();
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const [foundDestination, setFoundDestination] = useState<DestinationInfo | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Initial greeting
+  const greeting = {
+    id: 'greeting',
+    role: 'assistant' as const,
+    content: '✨ مرحباً بك في StarMaps! أنا مساعدك الذكي للسفر. إلى أين تريد أن تذهب اليوم؟ يمكنني مساعدتك في اختيار وجهتك وإخبارك بأفضل الفنادق والمعالم!',
+  };
+
+  const allMessages = [greeting, ...aiMessages];
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -58,24 +55,21 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, scrollToBottom]);
+  }, [allMessages, scrollToBottom]);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  // Text-to-speech function
+  // Text-to-speech
   const speak = useCallback((text: string) => {
     if (!audioEnabled || typeof window === 'undefined') return;
-    
-    // Cancel any ongoing speech
     window.speechSynthesis?.cancel();
     
-    const utterance = new SpeechSynthesisUtterance(text);
+    const utterance = new SpeechSynthesisUtterance(text.replace(/[*#🌟✨🎯📍🏨🗺️]/g, ''));
     utterance.lang = 'ar-SA';
     utterance.rate = 0.9;
     utterance.pitch = 1;
-    
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
@@ -83,9 +77,9 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
     window.speechSynthesis?.speak(utterance);
   }, [audioEnabled]);
 
+  // Find destination in user input
   const findDestination = useCallback((query: string): DestinationInfo | null => {
     const normalizedQuery = query.toLowerCase().trim();
-    
     for (const [key, value] of Object.entries(destinations)) {
       if (normalizedQuery.includes(key.toLowerCase()) || 
           normalizedQuery.includes(value.name.toLowerCase()) ||
@@ -96,73 +90,37 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
     return null;
   }, []);
 
-  const handleSend = useCallback(() => {
-    if (!input.trim()) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input,
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsTyping(true);
-
-    // Process the message
-    setTimeout(() => {
-      const destination = findDestination(input);
-      
-      if (destination) {
-        setFoundDestination(destination);
-        
-        const responseText = `🎯 وجدت وجهتك! ${destination.name}، ${destination.country}
-
-📍 المسافة من موقعك: ${destination.distance}
-
-🏨 أفضل الفنادق:
-${destination.hotels?.map(h => `• ${h}`).join('\n')}
-
-🗺️ أبرز المعالم:
-${destination.attractions?.map(a => `• ${a}`).join('\n')}
-
-هل تريد أن أعرض لك الخريطة التفاعلية؟`;
-
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: responseText,
-          isDestination: true,
-        };
-
-        setMessages(prev => [...prev, assistantMessage]);
-        setIsTyping(false);
-        
-        // Speak the destination info
-        speak(`وجدت وجهتك! ${destination.name} في ${destination.country}. المسافة من موقعك ${destination.distance}. أفضل الفنادق: ${destination.hotels?.slice(0, 2).join(' و ')}. أبرز المعالم: ${destination.attractions?.slice(0, 2).join(' و ')}`);
-        
-      } else {
-        // Suggest destinations
-        const suggestions = Object.keys(destinations).slice(0, 4).join('، ');
-        const responseText = `عذراً، لم أجد هذه الوجهة في قاعدة البيانات. 
-
-جرب إحدى الوجهات التالية:
-${suggestions}
-
-أو أخبرني بمزيد من التفاصيل عن المكان الذي تريد زيارته!`;
-
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: responseText,
-        };
-
-        setMessages(prev => [...prev, assistantMessage]);
-        setIsTyping(false);
-        speak('عذراً، لم أجد هذه الوجهة. جرب وجهات مثل دبي أو باريس أو طوكيو');
+  // Check AI response for destination mentions
+  useEffect(() => {
+    if (aiMessages.length > 0) {
+      const lastMessage = aiMessages[aiMessages.length - 1];
+      if (lastMessage.role === 'assistant' && !aiLoading) {
+        // Check if destination is mentioned
+        const dest = findDestination(lastMessage.content);
+        if (dest && !foundDestination) {
+          setFoundDestination(dest);
+        }
+        // Speak the response
+        speak(lastMessage.content.slice(0, 200));
       }
-    }, 1500);
-  }, [input, findDestination, speak]);
+    }
+  }, [aiMessages, aiLoading, findDestination, foundDestination, speak]);
+
+  const handleSend = useCallback(async () => {
+    if (!input.trim() || aiLoading) return;
+    
+    const userInput = input;
+    setInput('');
+    
+    // Check for destination in user input
+    const dest = findDestination(userInput);
+    if (dest) {
+      setFoundDestination(dest);
+    }
+    
+    // Send to AI
+    await sendAIMessage(userInput);
+  }, [input, aiLoading, findDestination, sendAIMessage]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -193,31 +151,40 @@ ${suggestions}
         animate={{ opacity: 1, y: 0 }}
         className="p-4 sm:p-6 flex items-center justify-between border-b border-border/30"
       >
-        <Logo size="sm" />
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleAudio}
-          className="rounded-xl"
-        >
-          {audioEnabled ? (
-            <Volume2 className={`w-5 h-5 ${isSpeaking ? 'text-primary animate-pulse' : ''}`} />
-          ) : (
-            <VolumeX className="w-5 h-5 text-muted-foreground" />
+        <div className="flex items-center gap-3">
+          {onBack && (
+            <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
           )}
-        </Button>
+          <Logo size="sm" />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10">
+            <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+            <span className="text-xs text-primary font-medium hidden sm:inline">AI مفعّل</span>
+          </div>
+          <Button variant="ghost" size="icon" onClick={toggleAudio} className="rounded-xl">
+            {audioEnabled ? (
+              <Volume2 className={`w-5 h-5 ${isSpeaking ? 'text-primary animate-pulse' : ''}`} />
+            ) : (
+              <VolumeX className="w-5 h-5 text-muted-foreground" />
+            )}
+          </Button>
+        </div>
       </motion.header>
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="max-w-2xl mx-auto space-y-4">
           <AnimatePresence mode="popLayout">
-            {messages.map((message, index) => (
+            {allMessages.map((message, index) => (
               <motion.div
-                key={message.id}
+                key={message.id || index}
                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: index * 0.1, type: 'spring', damping: 20 }}
+                transition={{ delay: index * 0.05, type: 'spring', damping: 20 }}
                 className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
               >
                 {/* Avatar */}
@@ -252,33 +219,13 @@ ${suggestions}
                   <p className="text-sm sm:text-base whitespace-pre-line leading-relaxed">
                     {message.content}
                   </p>
-                  
-                  {/* Show map button */}
-                  {message.isDestination && foundDestination && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 }}
-                      className="mt-4"
-                    >
-                      <Button
-                        variant="glow"
-                        size="lg"
-                        onClick={handleShowMap}
-                        className="w-full group"
-                      >
-                        <Plane className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                        اعرض الخريطة الآن
-                      </Button>
-                    </motion.div>
-                  )}
                 </div>
               </motion.div>
             ))}
           </AnimatePresence>
 
-          {/* Typing indicator */}
-          {isTyping && (
+          {/* AI Loading indicator */}
+          {aiLoading && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -290,9 +237,40 @@ ${suggestions}
               <div className="bg-secondary/50 backdrop-blur-sm border border-border/30 rounded-2xl rounded-tl-sm p-4">
                 <div className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                  <span className="text-sm text-muted-foreground">جاري البحث عن وجهتك...</span>
+                  <span className="text-sm text-muted-foreground">جاري التفكير...</span>
                 </div>
               </div>
+            </motion.div>
+          )}
+
+          {/* Error display */}
+          {aiError && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center p-3 rounded-xl bg-destructive/10 text-destructive text-sm"
+              dir="rtl"
+            >
+              {aiError}
+            </motion.div>
+          )}
+
+          {/* Show Map Button */}
+          {foundDestination && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-center pt-4"
+            >
+              <Button
+                variant="glow"
+                size="lg"
+                onClick={handleShowMap}
+                className="group"
+              >
+                <Plane className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                انطلق إلى {foundDestination.name}!
+              </Button>
             </motion.div>
           )}
 
@@ -340,15 +318,16 @@ ${suggestions}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="اكتب وجهتك المفضلة... (مثال: أريد السفر إلى دبي)"
+              placeholder="اسأل عن أي وجهة أو اكتب اسم المكان..."
               className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm sm:text-base py-3 px-4"
               dir="rtl"
+              disabled={aiLoading}
             />
             <Button
               onClick={handleSend}
               size="icon"
               className="shrink-0 w-11 h-11 rounded-xl bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/30"
-              disabled={!input.trim() || isTyping}
+              disabled={!input.trim() || aiLoading}
             >
               <Send className="w-5 h-5" />
             </Button>
