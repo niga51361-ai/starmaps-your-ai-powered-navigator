@@ -1,9 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, MapPin, Plane, Loader2, Volume2, VolumeX, Sparkles, ArrowLeft } from 'lucide-react';
+import { Send, Bot, User, MapPin, Plane, Loader2, Volume2, VolumeX, Sparkles, ArrowLeft, Train, Cloud, Sun, Hotel, Utensils, Mountain, Palmtree, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Logo from './Logo';
 import { useAIChat, type AIMessage } from '@/hooks/useAIChat';
+import DynamicBackground, { type BackgroundTheme } from './DynamicBackground';
 
 interface DestinationInfo {
   name: string;
@@ -29,6 +30,59 @@ const destinations: Record<string, DestinationInfo> = {
   'مكة': { name: 'مكة المكرمة', country: 'السعودية', coordinates: { lat: 21.3891, lng: 39.8579 }, distance: '800 كم', hotels: ['فيرمونت', 'رافلز', 'كونراد'], attractions: ['المسجد الحرام', 'الكعبة المشرفة', 'جبل النور'] },
   'القاهرة': { name: 'القاهرة', country: 'مصر', coordinates: { lat: 30.0444, lng: 31.2357 }, distance: '1,200 كم', hotels: ['فور سيزونز', 'ماريوت', 'كمبنسكي'], attractions: ['أهرامات الجيزة', 'المتحف المصري', 'نهر النيل'] },
   'اسطنبول': { name: 'اسطنبول', country: 'تركيا', coordinates: { lat: 41.0082, lng: 28.9784 }, distance: '2,000 كم', hotels: ['فور سيزونز', 'رافلز', 'سيراجان'], attractions: ['آيا صوفيا', 'المسجد الأزرق', 'البازار الكبير'] },
+  'المالديف': { name: 'المالديف', country: 'جزر المالديف', coordinates: { lat: 3.2028, lng: 73.2207 }, distance: '4,500 كم', hotels: ['سونيفا فوشي', 'وان آند أونلي', 'كونراد'], attractions: ['الشواطئ البيضاء', 'الغوص', 'المنتجعات المائية'] },
+  'سويسرا': { name: 'سويسرا', country: 'سويسرا', coordinates: { lat: 46.8182, lng: 8.2275 }, distance: '4,000 كم', hotels: ['بادروت بالاس', 'ذا شيدي', 'فيكتوريا يونغفراو'], attractions: ['جبال الألب', 'زيورخ', 'جنيف'] },
+};
+
+// Keywords for context detection
+const contextKeywords = {
+  weather: ['طقس', 'جو', 'حرارة', 'برد', 'حار', 'بارد', 'مطر', 'شمس', 'غيوم', 'ثلج'],
+  sunny: ['شمس', 'مشمس', 'حار', 'صيف', 'حرارة'],
+  rainy: ['مطر', 'ممطر', 'أمطار', 'عاصفة'],
+  cloudy: ['غيوم', 'غائم', 'سحب'],
+  plane: ['طيران', 'طائرة', 'سفر', 'رحلة', 'مطار', 'تذاكر'],
+  train: ['قطار', 'سكة', 'محطة'],
+  beach: ['شاطئ', 'بحر', 'سباحة', 'المالديف', 'جزر', 'استجمام'],
+  city: ['مدينة', 'دبي', 'نيويورك', 'لندن', 'باريس', 'طوكيو', 'اسطنبول', 'القاهرة', 'ناطحات'],
+  mountain: ['جبل', 'جبال', 'تسلق', 'سويسرا', 'الألب', 'ثلج'],
+  hotel: ['فندق', 'فنادق', 'إقامة', 'حجز', 'غرفة', 'منتجع'],
+  food: ['طعام', 'أكل', 'مطعم', 'مطاعم', 'وجبة', 'مأكولات'],
+  celebration: ['عبد الستار', 'مبروك', 'تهانينا', 'رائع', 'مذهل', 'عظيم', 'ممتاز'],
+};
+
+const detectTheme = (text: string): BackgroundTheme => {
+  const lowerText = text.toLowerCase();
+  
+  if (contextKeywords.celebration.some(k => lowerText.includes(k))) return 'celebration';
+  if (contextKeywords.beach.some(k => lowerText.includes(k))) return 'destination-beach';
+  if (contextKeywords.mountain.some(k => lowerText.includes(k))) return 'destination-mountain';
+  if (contextKeywords.plane.some(k => lowerText.includes(k))) return 'travel-plane';
+  if (contextKeywords.train.some(k => lowerText.includes(k))) return 'travel-train';
+  if (contextKeywords.hotel.some(k => lowerText.includes(k))) return 'hotel';
+  if (contextKeywords.food.some(k => lowerText.includes(k))) return 'food';
+  if (contextKeywords.rainy.some(k => lowerText.includes(k))) return 'weather-rainy';
+  if (contextKeywords.sunny.some(k => lowerText.includes(k))) return 'weather-sunny';
+  if (contextKeywords.cloudy.some(k => lowerText.includes(k))) return 'weather-cloudy';
+  if (contextKeywords.city.some(k => lowerText.includes(k))) return 'destination-city';
+  
+  return 'default';
+};
+
+// Get icon for current theme
+const getThemeIcon = (theme: BackgroundTheme) => {
+  switch (theme) {
+    case 'travel-plane': return <Plane className="w-4 h-4" />;
+    case 'travel-train': return <Train className="w-4 h-4" />;
+    case 'weather-sunny': return <Sun className="w-4 h-4" />;
+    case 'weather-cloudy': 
+    case 'weather-rainy': return <Cloud className="w-4 h-4" />;
+    case 'hotel': return <Hotel className="w-4 h-4" />;
+    case 'food': return <Utensils className="w-4 h-4" />;
+    case 'destination-mountain': return <Mountain className="w-4 h-4" />;
+    case 'destination-beach': return <Palmtree className="w-4 h-4" />;
+    case 'destination-city': return <Building className="w-4 h-4" />;
+    default: return <Sparkles className="w-4 h-4" />;
+  }
 };
 
 const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfirmed, onBack }) => {
@@ -37,17 +91,30 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
   const [foundDestination, setFoundDestination] = useState<DestinationInfo | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
+  const [currentTheme, setCurrentTheme] = useState<BackgroundTheme>('default');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Initial greeting
-  const greeting = {
+  const greeting: AIMessage = useMemo(() => ({
     id: 'greeting',
-    role: 'assistant' as const,
-    content: '✨ مرحباً بك في StarMaps! أنا مساعدك الذكي للسفر. إلى أين تريد أن تذهب اليوم؟ يمكنني مساعدتك في اختيار وجهتك وإخبارك بأفضل الفنادق والمعالم!',
-  };
+    role: 'assistant',
+    content: '✨ مرحباً بك في StarMaps! أنا مساعدك الذكي للسفر. إلى أين تريد أن تذهب اليوم؟ يمكنني مساعدتك في اختيار وجهتك وإخبارك بأفضل الفنادق والمعالم!\n\n🌍 جرّب أن تسألني عن: الطقس، الفنادق، الرحلات، المطاعم، أو أي وجهة تحلم بها!',
+  }), []);
 
-  const allMessages = [greeting, ...aiMessages];
+  const allMessages = useMemo(() => [greeting, ...aiMessages], [greeting, aiMessages]);
+
+  // Detect theme from messages
+  useEffect(() => {
+    if (aiMessages.length > 0) {
+      const lastMessages = aiMessages.slice(-3);
+      const combinedText = lastMessages.map(m => m.content).join(' ');
+      const detectedTheme = detectTheme(combinedText);
+      if (detectedTheme !== currentTheme) {
+        setCurrentTheme(detectedTheme);
+      }
+    }
+  }, [aiMessages, currentTheme]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -66,7 +133,8 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
     if (!audioEnabled || typeof window === 'undefined') return;
     window.speechSynthesis?.cancel();
     
-    const utterance = new SpeechSynthesisUtterance(text.replace(/[*#🌟✨🎯📍🏨🗺️]/g, ''));
+    const cleanText = text.replace(/[*#🌟✨🎯📍🏨🗺️🌍💫⭐🎉✈️🏖️🏔️🍽️]/g, '');
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'ar-SA';
     utterance.rate = 0.9;
     utterance.pitch = 1;
@@ -101,7 +169,7 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
           setFoundDestination(dest);
         }
         // Speak the response
-        speak(lastMessage.content.slice(0, 200));
+        speak(lastMessage.content.slice(0, 250));
       }
     }
   }, [aiMessages, aiLoading, findDestination, foundDestination, speak]);
@@ -111,6 +179,12 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
     
     const userInput = input;
     setInput('');
+    
+    // Detect theme from user input
+    const inputTheme = detectTheme(userInput);
+    if (inputTheme !== 'default') {
+      setCurrentTheme(inputTheme);
+    }
     
     // Check for destination in user input
     const dest = findDestination(userInput);
@@ -144,16 +218,20 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
   }, [isSpeaking]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      {/* Dynamic Background */}
+      <DynamicBackground theme={currentTheme} />
+
       {/* Header */}
       <motion.header 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="p-4 sm:p-6 flex items-center justify-between border-b border-border/30"
+        className="relative z-20 p-4 sm:p-6 flex items-center justify-between backdrop-blur-sm"
+        style={{ background: 'hsl(var(--background) / 0.5)' }}
       >
         <div className="flex items-center gap-3">
           {onBack && (
-            <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl">
+            <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl backdrop-blur-sm bg-background/30">
               <ArrowLeft className="w-5 h-5" />
             </Button>
           )}
@@ -161,11 +239,19 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
         </div>
         
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10">
-            <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-            <span className="text-xs text-primary font-medium hidden sm:inline">AI مفعّل</span>
-          </div>
-          <Button variant="ghost" size="icon" onClick={toggleAudio} className="rounded-xl">
+          {/* Theme indicator */}
+          <motion.div 
+            key={currentTheme}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/20 backdrop-blur-sm border border-primary/30"
+          >
+            {getThemeIcon(currentTheme)}
+            <span className="text-xs text-primary font-medium hidden sm:inline">
+              {currentTheme === 'default' ? 'AI مفعّل' : 'تفاعلي'}
+            </span>
+          </motion.div>
+          <Button variant="ghost" size="icon" onClick={toggleAudio} className="rounded-xl backdrop-blur-sm bg-background/30">
             {audioEnabled ? (
               <Volume2 className={`w-5 h-5 ${isSpeaking ? 'text-primary animate-pulse' : ''}`} />
             ) : (
@@ -176,24 +262,25 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
       </motion.header>
 
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 relative z-10">
         <div className="max-w-2xl mx-auto space-y-4">
           <AnimatePresence mode="popLayout">
             {allMessages.map((message, index) => (
               <motion.div
-                key={message.id || index}
+                key={message.id}
                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: index * 0.05, type: 'spring', damping: 20 }}
+                transition={{ delay: index * 0.03, type: 'spring', damping: 20 }}
                 className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
               >
                 {/* Avatar */}
-                <div 
+                <motion.div 
+                  whileHover={{ scale: 1.1 }}
                   className={`
-                    w-10 h-10 rounded-2xl flex items-center justify-center shrink-0
+                    w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-lg
                     ${message.role === 'assistant' 
-                      ? 'bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/20' 
-                      : 'bg-secondary'
+                      ? 'bg-gradient-to-br from-primary to-accent shadow-primary/30' 
+                      : 'bg-gradient-to-br from-secondary to-muted'
                     }
                   `}
                 >
@@ -202,15 +289,16 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
                   ) : (
                     <User className="w-5 h-5 text-foreground" />
                   )}
-                </div>
+                </motion.div>
 
                 {/* Message bubble */}
-                <div 
+                <motion.div 
+                  whileHover={{ scale: 1.01 }}
                   className={`
-                    max-w-[85%] rounded-2xl p-4
+                    max-w-[85%] rounded-2xl p-4 backdrop-blur-md shadow-lg
                     ${message.role === 'assistant' 
-                      ? 'bg-secondary/50 backdrop-blur-sm border border-border/30' 
-                      : 'bg-gradient-to-r from-primary to-accent text-white'
+                      ? 'bg-background/70 border border-border/50' 
+                      : 'bg-gradient-to-r from-primary to-accent text-white shadow-primary/20'
                     }
                     ${message.role === 'assistant' ? 'rounded-tl-sm' : 'rounded-tr-sm'}
                   `}
@@ -219,7 +307,7 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
                   <p className="text-sm sm:text-base whitespace-pre-line leading-relaxed">
                     {message.content}
                   </p>
-                </div>
+                </motion.div>
               </motion.div>
             ))}
           </AnimatePresence>
@@ -231,12 +319,28 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
               animate={{ opacity: 1, y: 0 }}
               className="flex gap-3"
             >
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30">
                 <Bot className="w-5 h-5 text-white" />
               </div>
-              <div className="bg-secondary/50 backdrop-blur-sm border border-border/30 rounded-2xl rounded-tl-sm p-4">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              <div className="bg-background/70 backdrop-blur-md border border-border/50 rounded-2xl rounded-tl-sm p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-1">
+                    <motion.div 
+                      className="w-2 h-2 rounded-full bg-primary"
+                      animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+                    />
+                    <motion.div 
+                      className="w-2 h-2 rounded-full bg-primary"
+                      animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+                    />
+                    <motion.div 
+                      className="w-2 h-2 rounded-full bg-primary"
+                      animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
+                    />
+                  </div>
                   <span className="text-sm text-muted-foreground">جاري التفكير...</span>
                 </div>
               </div>
@@ -246,55 +350,79 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
           {/* Error display */}
           {aiError && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center p-3 rounded-xl bg-destructive/10 text-destructive text-sm"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center p-4 rounded-xl bg-destructive/20 backdrop-blur-sm border border-destructive/30 text-destructive text-sm"
               dir="rtl"
             >
-              {aiError}
+              ⚠️ {aiError}
             </motion.div>
           )}
 
           {/* Show Map Button */}
-          {foundDestination && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex justify-center pt-4"
-            >
-              <Button
-                variant="glow"
-                size="lg"
-                onClick={handleShowMap}
-                className="group"
+          <AnimatePresence>
+            {foundDestination && (
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.9 }}
+                className="flex justify-center pt-4"
               >
-                <Plane className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                انطلق إلى {foundDestination.name}!
-              </Button>
-            </motion.div>
-          )}
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button
+                    size="lg"
+                    onClick={handleShowMap}
+                    className="group relative overflow-hidden bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_100%] animate-gradient text-white shadow-2xl shadow-primary/40 px-8 py-6 text-lg rounded-2xl"
+                  >
+                    <motion.div
+                      className="absolute inset-0 bg-white/20"
+                      initial={{ x: '-100%' }}
+                      whileHover={{ x: '100%' }}
+                      transition={{ duration: 0.5 }}
+                    />
+                    <Plane className="w-6 h-6 ml-3 group-hover:translate-x-2 group-hover:-translate-y-1 transition-transform" />
+                    <span>انطلق إلى {foundDestination.name}!</span>
+                  </Button>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div ref={messagesEndRef} />
         </div>
       </div>
 
       {/* Quick suggestions */}
-      <div className="px-4 sm:px-6 pb-2">
+      <div className="px-4 sm:px-6 pb-2 relative z-10">
         <div className="max-w-2xl mx-auto">
-          <div className="flex flex-wrap gap-2 justify-center" dir="rtl">
-            {['دبي', 'باريس', 'طوكيو', 'اسطنبول'].map((city) => (
+          <motion.div 
+            className="flex flex-wrap gap-2 justify-center" 
+            dir="rtl"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {[
+              { city: 'دبي', icon: '🏙️' },
+              { city: 'المالديف', icon: '🏖️' },
+              { city: 'سويسرا', icon: '🏔️' },
+              { city: 'طوكيو', icon: '🗼' },
+            ].map(({ city, icon }) => (
               <motion.button
                 key={city}
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setInput(`أريد السفر إلى ${city}`)}
-                className="px-4 py-2 rounded-xl bg-secondary/50 hover:bg-secondary text-sm text-foreground border border-border/30 transition-colors"
+                className="px-4 py-2 rounded-xl bg-background/50 backdrop-blur-md hover:bg-background/70 text-sm text-foreground border border-border/30 transition-all shadow-lg hover:shadow-primary/10"
               >
+                <span className="mr-1">{icon}</span>
                 <MapPin className="w-3 h-3 inline-block ml-1" />
                 {city}
               </motion.button>
             ))}
-          </div>
+          </motion.div>
         </div>
       </div>
 
@@ -302,14 +430,14 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="p-4 sm:p-6 border-t border-border/30"
+        className="p-4 sm:p-6 relative z-10"
       >
         <div className="max-w-2xl mx-auto">
           <div 
-            className="flex items-center gap-2 sm:gap-3 rounded-2xl p-2 backdrop-blur-xl"
+            className="flex items-center gap-2 sm:gap-3 rounded-2xl p-2 backdrop-blur-xl shadow-2xl"
             style={{
-              background: 'hsl(var(--secondary) / 0.5)',
-              border: '1px solid hsl(var(--border) / 0.3)',
+              background: 'hsl(var(--background) / 0.7)',
+              border: '1px solid hsl(var(--border) / 0.5)',
             }}
           >
             <input
@@ -318,22 +446,40 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="اسأل عن أي وجهة أو اكتب اسم المكان..."
+              placeholder="اسأل عن الطقس، الفنادق، أو أي وجهة تريدها..."
               className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm sm:text-base py-3 px-4"
               dir="rtl"
               disabled={aiLoading}
             />
-            <Button
-              onClick={handleSend}
-              size="icon"
-              className="shrink-0 w-11 h-11 rounded-xl bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/30"
-              disabled={!input.trim() || aiLoading}
-            >
-              <Send className="w-5 h-5" />
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                onClick={handleSend}
+                size="icon"
+                className="shrink-0 w-12 h-12 rounded-xl bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/40"
+                disabled={!input.trim() || aiLoading}
+              >
+                {aiLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
+              </Button>
+            </motion.div>
           </div>
         </div>
       </motion.div>
+
+      {/* Add gradient animation keyframes */}
+      <style>{`
+        @keyframes gradient {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .animate-gradient {
+          animation: gradient 3s ease infinite;
+        }
+      `}</style>
     </div>
   );
 };
