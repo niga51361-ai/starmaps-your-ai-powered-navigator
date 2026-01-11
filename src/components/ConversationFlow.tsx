@@ -196,12 +196,14 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
     await sendAIMessage(userInput);
   }, [input, aiLoading, findDestination, sendAIMessage]);
 
-  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   }, [handleSend]);
+
+
 
   const handleShowMap = useCallback(() => {
     if (foundDestination) {
@@ -373,6 +375,7 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
                   whileTap={{ scale: 0.95 }}
                 >
                   <Button
+                    type="button"
                     size="lg"
                     onClick={handleShowMap}
                     className="group relative overflow-hidden bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_100%] animate-gradient text-white shadow-2xl shadow-primary/40 px-8 py-6 text-lg rounded-2xl"
@@ -445,26 +448,27 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyDown}
               placeholder="اسأل عن الطقس، الفنادق، أو أي وجهة تريدها..."
               className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm sm:text-base py-3 px-4"
               dir="rtl"
               disabled={aiLoading}
             />
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                onClick={handleSend}
-                size="icon"
-                className="shrink-0 w-12 h-12 rounded-xl bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/40"
-                disabled={!input.trim() || aiLoading}
-              >
-                {aiLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Send className="w-5 h-5" />
-                )}
-              </Button>
-            </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  type="button"
+                  onClick={handleSend}
+                  size="icon"
+                  className="shrink-0 w-12 h-12 rounded-xl bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/40"
+                  disabled={!input.trim() || aiLoading}
+                >
+                  {aiLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Send className="w-5 h-5" />
+                  )}
+                </Button
+              </motion.div>
           </div>
         </div>
       </motion.div>
