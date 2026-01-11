@@ -4,6 +4,7 @@ import { Send, Bot, User, MapPin, Plane, Loader2, Volume2, VolumeX, Sparkles, Ar
 import { Button } from '@/components/ui/button';
 import Logo from './Logo';
 import { useAIChat, type AIMessage } from '@/hooks/useAIChat';
+import { useSfx } from '@/hooks/useSfx';
 import DynamicBackground, { type BackgroundTheme } from './DynamicBackground';
 
 interface DestinationInfo {
@@ -92,6 +93,11 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [currentTheme, setCurrentTheme] = useState<BackgroundTheme>('default');
+
+  const { playSfx } = useSfx({ enabled: audioEnabled, volume: 0.32 });
+  const lastAssistantIdRef = useRef<string | null>(null);
+  const prevThemeRef = useRef<BackgroundTheme>('default');
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -115,6 +121,13 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
       }
     }
   }, [aiMessages, currentTheme]);
+
+  // SFX on theme change (subtle)
+  useEffect(() => {
+    if (prevThemeRef.current === currentTheme) return;
+    if (currentTheme !== 'default') playSfx('theme');
+    prevThemeRef.current = currentTheme;
+  }, [currentTheme, playSfx]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -160,41 +173,48 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
 
   // Check AI response for destination mentions
   useEffect(() => {
-    if (aiMessages.length > 0) {
-      const lastMessage = aiMessages[aiMessages.length - 1];
-      if (lastMessage.role === 'assistant' && !aiLoading) {
-        // Check if destination is mentioned
-        const dest = findDestination(lastMessage.content);
-        if (dest && !foundDestination) {
-          setFoundDestination(dest);
-        }
-        // Speak the response
-        speak(lastMessage.content.slice(0, 250));
-      }
+    if (aiMessages.length === 0) return;
+
+    const lastMessage = aiMessages[aiMessages.length - 1];
+    if (lastMessage.role !== 'assistant' || aiLoading) return;
+
+    // Avoid double firing after renders
+    if (lastAssistantIdRef.current !== lastMessage.id) {
+      lastAssistantIdRef.current = lastMessage.id;
+      playSfx('receive');
     }
-  }, [aiMessages, aiLoading, findDestination, foundDestination, speak]);
+
+    const dest = findDestination(lastMessage.content);
+    if (dest && !foundDestination) {
+      setFoundDestination(dest);
+    }
+
+    speak(lastMessage.content.slice(0, 250));
+  }, [aiMessages, aiLoading, findDestination, foundDestination, speak, playSfx]);
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || aiLoading) return;
-    
+
+    playSfx('send');
+
     const userInput = input;
     setInput('');
-    
+
     // Detect theme from user input
     const inputTheme = detectTheme(userInput);
     if (inputTheme !== 'default') {
       setCurrentTheme(inputTheme);
     }
-    
+
     // Check for destination in user input
     const dest = findDestination(userInput);
     if (dest) {
       setFoundDestination(dest);
     }
-    
+
     // Send to AI
     await sendAIMessage(userInput);
-  }, [input, aiLoading, findDestination, sendAIMessage]);
+  }, [input, aiLoading, findDestination, sendAIMessage, playSfx]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -454,21 +474,21 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
               dir="rtl"
               disabled={aiLoading}
             />
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  type="button"
-                  onClick={handleSend}
-                  size="icon"
-                  className="shrink-0 w-12 h-12 rounded-xl bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/40"
-                  disabled={!input.trim() || aiLoading}
-                >
-                  {aiLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Send className="w-5 h-5" />
-                  )}
-                </Button
-              </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                type="button"
+                onClick={handleSend}
+                size="icon"
+                className="shrink-0 w-12 h-12 rounded-xl bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/40"
+                disabled={!input.trim() || aiLoading}
+              >
+                {aiLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
+              </Button>
+            </motion.div>
           </div>
         </div>
       </motion.div>

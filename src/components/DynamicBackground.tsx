@@ -38,7 +38,11 @@ const Cloud: React.FC<{ delay: number; size: 'sm' | 'md' | 'lg'; y: number }> = 
         opacity: { duration: 1 }
       }}
     >
-      <svg viewBox="0 0 100 50" className="w-full h-full fill-white/20">
+      <svg
+        viewBox="0 0 100 50"
+        className="w-full h-full"
+        style={{ fill: 'hsl(var(--foreground) / 0.12)' }}
+      >
         <ellipse cx="30" cy="35" rx="20" ry="15" />
         <ellipse cx="50" cy="30" rx="25" ry="20" />
         <ellipse cx="75" cy="35" rx="18" ry="13" />
@@ -50,8 +54,11 @@ const Cloud: React.FC<{ delay: number; size: 'sm' | 'md' | 'lg'; y: number }> = 
 // Rain drop
 const RainDrop: React.FC<{ delay: number; x: number }> = ({ delay, x }) => (
   <motion.div
-    className="absolute w-0.5 h-6 bg-gradient-to-b from-blue-400/50 to-transparent rounded-full"
-    style={{ left: `${x}%` }}
+    className="absolute w-0.5 h-6 rounded-full"
+    style={{
+      left: `${x}%`,
+      background: 'linear-gradient(to bottom, hsl(var(--accent) / 0.55), transparent)',
+    }}
     initial={{ y: -20, opacity: 0 }}
     animate={{ y: '100vh', opacity: [0, 1, 0] }}
     transition={{
@@ -74,7 +81,7 @@ const SunRays: React.FC = () => (
     <motion.div
       className="w-32 h-32 rounded-full"
       style={{
-        background: 'radial-gradient(circle, rgba(255,200,50,0.8) 0%, rgba(255,150,50,0.3) 50%, transparent 70%)',
+        background: 'radial-gradient(circle, hsl(var(--accent) / 0.85) 0%, hsl(var(--primary) / 0.25) 55%, transparent 75%)',
       }}
       animate={{
         scale: [1, 1.1, 1],
@@ -85,9 +92,9 @@ const SunRays: React.FC = () => (
     {[...Array(8)].map((_, i) => (
       <motion.div
         key={i}
-        className="absolute top-1/2 left-1/2 w-24 h-1 bg-gradient-to-r from-yellow-400/50 to-transparent origin-left"
+        className="absolute top-1/2 left-1/2 w-24 h-1 bg-gradient-to-r from-accent/40 to-transparent origin-left"
         style={{ transform: `rotate(${i * 45}deg)` }}
-        animate={{ opacity: [0.3, 0.7, 0.3] }}
+        animate={{ opacity: [0.25, 0.6, 0.25] }}
         transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
       />
     ))}
@@ -106,13 +113,13 @@ const FlyingPlane: React.FC = () => (
       animate={{ y: [0, -10, 0], rotate: [0, 2, -2, 0] }}
       transition={{ duration: 2, repeat: Infinity }}
     >
-      <svg className="w-20 h-20 text-white/60" viewBox="0 0 24 24" fill="currentColor">
+      <svg className="w-20 h-20 text-foreground/40" viewBox="0 0 24 24" fill="currentColor">
         <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
       </svg>
     </motion.div>
     {/* Contrail */}
     <motion.div
-      className="absolute top-1/2 right-full w-96 h-0.5 bg-gradient-to-r from-transparent to-white/20"
+      className="absolute top-1/2 right-full w-96 h-0.5 bg-gradient-to-r from-transparent to-foreground/10"
       style={{ transformOrigin: 'right center' }}
     />
   </motion.div>
@@ -130,7 +137,7 @@ const MovingTrain: React.FC = () => (
       {/* Engine */}
       <div className="relative">
         <div className="w-20 h-14 bg-gradient-to-br from-primary/80 to-primary/60 rounded-t-lg rounded-r-2xl">
-          <div className="absolute top-2 left-2 w-4 h-4 rounded-full bg-yellow-400/80" />
+          <div className="absolute top-2 left-2 w-4 h-4 rounded-full bg-accent/80" />
           <div className="absolute bottom-0 left-2 right-2 h-6 bg-secondary/50 rounded-t" />
         </div>
         <div className="flex gap-1 justify-center">
@@ -188,7 +195,12 @@ const Wave: React.FC<{ delay: number; y: number }> = ({ delay, y }) => (
     }}
     transition={{ duration: 4, repeat: Infinity, delay, ease: 'easeInOut' }}
   >
-    <svg viewBox="0 0 1200 30" className="w-full h-full fill-blue-400/20" preserveAspectRatio="none">
+    <svg
+      viewBox="0 0 1200 30"
+      className="w-full h-full"
+      style={{ fill: 'hsl(var(--accent) / 0.18)' }}
+      preserveAspectRatio="none"
+    >
       <path d="M0,15 Q150,0 300,15 T600,15 T900,15 T1200,15 L1200,30 L0,30 Z" />
     </svg>
   </motion.div>
@@ -209,12 +221,12 @@ const CityBuildings: React.FC = () => (
         <div 
           className="w-full h-full bg-gradient-to-b from-primary/20 to-secondary/40 rounded-t"
         >
-          {[...Array(Math.floor(height / 20))].map((_, j) => (
-            <div key={j} className="flex justify-center gap-1 py-2">
-              <div className={`w-2 h-2 ${Math.random() > 0.3 ? 'bg-yellow-400/50' : 'bg-transparent'}`} />
-              <div className={`w-2 h-2 ${Math.random() > 0.3 ? 'bg-yellow-400/50' : 'bg-transparent'}`} />
-            </div>
-          ))}
+            {[...Array(Math.floor(height / 20))].map((_, j) => (
+              <div key={j} className="flex justify-center gap-1 py-2">
+                <div className={`w-2 h-2 ${Math.random() > 0.3 ? 'bg-accent/45' : 'bg-transparent'}`} />
+                <div className={`w-2 h-2 ${Math.random() > 0.3 ? 'bg-accent/45' : 'bg-transparent'}`} />
+              </div>
+            ))}
         </div>
       </motion.div>
     ))}
@@ -233,15 +245,15 @@ const FloatingHotel: React.FC = () => (
   >
     <div className="relative">
       <div className="w-24 h-32 bg-gradient-to-b from-primary/40 to-primary/20 rounded-t-lg rounded-b">
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-16 h-6 bg-accent/30 rounded text-center text-xs text-white/80 flex items-center justify-center">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-16 h-6 bg-accent/30 rounded text-center text-xs text-foreground/80 flex items-center justify-center">
           HOTEL
         </div>
         <div className="absolute top-12 left-0 right-0 grid grid-cols-3 gap-1 px-2">
           {[...Array(9)].map((_, i) => (
             <motion.div
               key={i}
-              className="w-full h-4 bg-yellow-400/50 rounded-sm"
-              animate={{ opacity: [0.3, 1, 0.3] }}
+              className="w-full h-4 bg-accent/40 rounded-sm"
+              animate={{ opacity: [0.25, 0.85, 0.25] }}
               transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
             />
           ))}
@@ -292,19 +304,19 @@ const Mountains: React.FC = () => (
     <svg viewBox="0 0 1200 200" className="w-full h-full" preserveAspectRatio="none">
       <defs>
         <linearGradient id="mountainGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="hsl(250 15% 20%)" />
-          <stop offset="100%" stopColor="hsl(250 15% 10%)" />
+          <stop offset="0%" stopColor="hsl(var(--secondary))" />
+          <stop offset="100%" stopColor="hsl(var(--background))" />
         </linearGradient>
         <linearGradient id="mountainGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="hsl(250 15% 15%)" />
-          <stop offset="100%" stopColor="hsl(250 15% 8%)" />
+          <stop offset="0%" stopColor="hsl(var(--muted))" />
+          <stop offset="100%" stopColor="hsl(var(--background))" />
         </linearGradient>
       </defs>
       <path d="M0,200 L200,80 L400,150 L600,50 L800,120 L1000,40 L1200,100 L1200,200 Z" fill="url(#mountainGrad1)" />
       <path d="M0,200 L150,120 L350,180 L550,100 L750,160 L950,80 L1200,140 L1200,200 Z" fill="url(#mountainGrad2)" />
       {/* Snow caps */}
-      <path d="M590,50 L600,50 L610,60 L590,60 Z" fill="white" opacity="0.6" />
-      <path d="M990,40 L1000,40 L1015,55 L985,55 Z" fill="white" opacity="0.6" />
+      <path d="M590,50 L600,50 L610,60 L590,60 Z" fill="hsl(var(--foreground))" opacity="0.6" />
+      <path d="M990,40 L1000,40 L1015,55 L985,55 Z" fill="hsl(var(--foreground))" opacity="0.6" />
     </svg>
   </div>
 );
@@ -318,7 +330,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ theme }) => {
             <div 
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(to bottom, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                background: 'linear-gradient(to bottom, hsl(var(--accent) / 0.14) 0%, hsl(var(--card)) 55%, hsl(var(--background)) 100%)',
               }}
             />
             <SunRays />
@@ -331,7 +343,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ theme }) => {
             <div 
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(to bottom, #1a1a2e 0%, #2d3436 100%)',
+                background: 'linear-gradient(to bottom, hsl(var(--secondary)) 0%, hsl(var(--background)) 100%)',
               }}
             />
             <Cloud delay={0} size="lg" y={15} />
@@ -348,7 +360,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ theme }) => {
             <div 
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(to bottom, #1a1a2e 0%, #2c3e50 100%)',
+                background: 'linear-gradient(to bottom, hsl(var(--muted)) 0%, hsl(var(--background)) 100%)',
               }}
             />
             <Cloud delay={0} size="lg" y={5} />
@@ -366,7 +378,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ theme }) => {
             <div 
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(to bottom, #0f0c29 0%, #302b63 50%, #24243e 100%)',
+                background: 'linear-gradient(to bottom, hsl(var(--primary) / 0.16) 0%, hsl(var(--card)) 55%, hsl(var(--background)) 100%)',
               }}
             />
             <Cloud delay={0} size="sm" y={60} />
@@ -382,7 +394,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ theme }) => {
             <div 
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(to bottom, #1a1a2e 0%, #16213e 100%)',
+                background: 'linear-gradient(to bottom, hsl(var(--card)) 0%, hsl(var(--background)) 100%)',
               }}
             />
             <MovingTrain />
@@ -395,7 +407,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ theme }) => {
             <div 
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(to bottom, #0f0c29 0%, #1a1a4e 40%, #1e3a5f 70%, #2e5a7f 100%)',
+                background: 'linear-gradient(to bottom, hsl(var(--accent) / 0.12) 0%, hsl(var(--primary) / 0.10) 45%, hsl(var(--background)) 100%)',
               }}
             />
             <SunRays />
@@ -411,7 +423,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ theme }) => {
             <div 
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(to bottom, #0f0c29 0%, #1a1a2e 100%)',
+                background: 'linear-gradient(to bottom, hsl(var(--background)) 0%, hsl(var(--card)) 100%)',
               }}
             />
             <CityBuildings />
@@ -424,7 +436,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ theme }) => {
             <div 
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(to bottom, #0f0c29 0%, #1a1a2e 100%)',
+                background: 'linear-gradient(to bottom, hsl(var(--background)) 0%, hsl(var(--card)) 100%)',
               }}
             />
             <Mountains />
@@ -437,7 +449,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ theme }) => {
             <div 
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(to bottom, #1a1a2e 0%, #16213e 100%)',
+                background: 'linear-gradient(to bottom, hsl(var(--card)) 0%, hsl(var(--background)) 100%)',
               }}
             />
             <FloatingHotel />
@@ -450,7 +462,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ theme }) => {
             <div 
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(to bottom, #1a1a2e 0%, #2d1f3d 100%)',
+                background: 'linear-gradient(to bottom, hsl(var(--primary) / 0.10) 0%, hsl(var(--background)) 100%)',
               }}
             />
             <FloatingFood />
@@ -463,7 +475,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ theme }) => {
             <div 
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(to bottom, #1a1a2e 0%, #2d1f5d 100%)',
+                background: 'linear-gradient(to bottom, hsl(var(--primary) / 0.16) 0%, hsl(var(--background)) 100%)',
               }}
             />
             {[...Array(15)].map((_, i) => (
@@ -483,7 +495,7 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ theme }) => {
             <div 
               className="absolute inset-0"
               style={{
-                background: 'radial-gradient(ellipse at top, hsl(250 20% 8%) 0%, hsl(250 20% 4%) 100%)',
+                background: 'radial-gradient(ellipse at top, hsl(var(--card)) 0%, hsl(var(--background)) 100%)',
               }}
             />
             <motion.div 
