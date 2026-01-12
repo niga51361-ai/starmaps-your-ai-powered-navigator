@@ -32,6 +32,7 @@ const CinematicMapReveal: React.FC<CinematicMapRevealProps> = ({ destination, on
   const [showInfo, setShowInfo] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
   // Text-to-speech function
   const speak = useCallback((text: string) => {
@@ -87,7 +88,7 @@ const CinematicMapReveal: React.FC<CinematicMapRevealProps> = ({ destination, on
         newMap.on('load', () => {
           console.log('Map loaded successfully');
           setMapLoaded(true);
-          
+
           // Add atmosphere
           try {
             newMap.setFog({
@@ -104,7 +105,7 @@ const CinematicMapReveal: React.FC<CinematicMapRevealProps> = ({ destination, on
           // Start flying animation after a short delay
           setTimeout(() => {
             setPhase('flying');
-            
+
             newMap.flyTo({
               center: [destination.coordinates.lng, destination.coordinates.lat],
               zoom: 13,
@@ -123,7 +124,7 @@ const CinematicMapReveal: React.FC<CinematicMapRevealProps> = ({ destination, on
             // Arrival phase
             setTimeout(() => {
               setPhase('arrived');
-              
+
               // Add custom marker
               const markerEl = document.createElement('div');
               markerEl.className = 'custom-destination-marker';
@@ -131,18 +132,18 @@ const CinematicMapReveal: React.FC<CinematicMapRevealProps> = ({ destination, on
                 <div class="marker-ring"></div>
                 <div class="marker-dot"></div>
               `;
-              
+
               new mapboxgl.Marker(markerEl)
                 .setLngLat([destination.coordinates.lng, destination.coordinates.lat])
                 .addTo(newMap);
 
               speak(`وصلنا إلى ${destination.name}! دعني أخبرك عن أفضل الفنادق والمعالم هنا.`);
-              
+
               // Show info panel
               setTimeout(() => {
                 setPhase('exploring');
                 setShowInfo(true);
-                
+
                 setTimeout(() => {
                   const hotelsList = destination.hotels?.slice(0, 2).join(' و ') || '';
                   const attractionsList = destination.attractions?.slice(0, 2).join(' و ') || '';
@@ -175,16 +176,20 @@ const CinematicMapReveal: React.FC<CinematicMapRevealProps> = ({ destination, on
         map.current = null;
       }
     };
-  }, [destination, speak]);
+  }, [destination, speak, retryKey]);
 
   const handleRetry = () => {
     setMapError(null);
     setMapLoaded(false);
+    setPhase('intro');
+    setShowInfo(false);
+
     if (map.current) {
       map.current.remove();
       map.current = null;
     }
-    window.location.reload();
+
+    setRetryKey((k) => k + 1);
   };
 
   return (
