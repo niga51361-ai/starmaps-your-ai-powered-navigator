@@ -206,6 +206,8 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
 
     const userInput = input;
     setInput('');
+    // Keep focus on the input to avoid accidental focus jumps while streaming
+    requestAnimationFrame(() => inputRef.current?.focus());
 
     // Detect theme from user input
     const inputTheme = detectTheme(userInput);
@@ -487,7 +489,8 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
               placeholder="اسأل عن الطقس، الفنادق، أو أي وجهة تريدها..."
               className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm sm:text-base py-3 px-4"
               dir="rtl"
-              disabled={aiLoading}
+              readOnly={aiLoading}
+              aria-disabled={aiLoading}
             />
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
