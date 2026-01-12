@@ -101,6 +101,13 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Play success sound when destination found
+  useEffect(() => {
+    if (foundDestination) {
+      playSfx('success');
+    }
+  }, [foundDestination, playSfx]);
+
   // Initial greeting
   const greeting: AIMessage = useMemo(() => ({
     id: 'greeting',
@@ -227,17 +234,25 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
 
   const handleShowMap = useCallback(() => {
     if (foundDestination) {
+      playSfx('transition');
       onDestinationConfirmed(foundDestination);
     }
-  }, [foundDestination, onDestinationConfirmed]);
+  }, [foundDestination, onDestinationConfirmed, playSfx]);
 
   const toggleAudio = useCallback(() => {
+    playSfx('click');
     setAudioEnabled(prev => !prev);
     if (isSpeaking) {
       window.speechSynthesis?.cancel();
       setIsSpeaking(false);
     }
-  }, [isSpeaking]);
+  }, [isSpeaking, playSfx]);
+
+  // Handle suggestion click with sound
+  const handleSuggestionClick = useCallback((city: string) => {
+    playSfx('click');
+    setInput(`أريد السفر إلى ${city}`);
+  }, [playSfx]);
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
@@ -437,7 +452,7 @@ const ConversationFlow: React.FC<ConversationFlowProps> = ({ onDestinationConfir
                 key={city}
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setInput(`أريد السفر إلى ${city}`)}
+                onClick={() => handleSuggestionClick(city)}
                 className="px-4 py-2 rounded-xl bg-background/50 backdrop-blur-md hover:bg-background/70 text-sm text-foreground border border-border/30 transition-all shadow-lg hover:shadow-primary/10"
               >
                 <span className="mr-1">{icon}</span>
